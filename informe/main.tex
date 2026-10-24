@@ -1,0 +1,198 @@
+\documentclass[12pt,letterpaper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish,es-tabla]{babel}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{hyperref}
+\usepackage{microtype}
+\hypersetup{colorlinks=true,linkcolor=blue,urlcolor=blue,citecolor=blue}
+\renewcommand{\arraystretch}{1.15}
+\newcommand{\figpendiente}[2]{%
+\begin{figure}[H]\centering
+\IfFileExists{#1}{\includegraphics[width=0.70\textwidth]{#1}}{\fbox{\parbox[c][4cm][c]{0.8\textwidth}{\centering Figura pendiente de exportar desde Python\\\texttt{\detokenize{#1}}}}}
+\caption{#2}\end{figure}}
+\begin{document}
+\begin{titlepage}\centering
+{\Large Universidad del Valle de Guatemala\par}\vspace{1.5cm}
+{\Large Proyecto final de Ecuaciones Diferenciales 1\par}\vspace{1cm}
+{\Huge\bfseries Implementación y comparación de los métodos de Euler y Runge--Kutta de cuarto orden\par}
+\vspace{1.5cm}{\large Alternativa 2: resolución numérica de ecuaciones diferenciales ordinarias\par}
+\vfill
+{\large Integrantes\par}\vspace{0.4cm}
+Haroldo Flores
+\vfill
+{\large Segundo ciclo de 2026\par}
+{\large Fecha de entrega: 23/10/2026\par}
+\end{titlepage}
+\tableofcontents\newpage
+\section*{Resumen}\addcontentsline{toc}{section}{Resumen}
+Se implementaron en Python los métodos numéricos de Euler y Runge--Kutta de cuarto orden (RK4) para aproximar soluciones de ecuaciones diferenciales ordinarias. Ambos procedimientos se aplicaron a cuatro problemas: una ecuación de primer orden, una ecuación de segundo orden, un sistema lineal de dos ecuaciones y un sistema no lineal de Lotka--Volterra. En los tres primeros casos se determinaron soluciones analíticas para evaluar los errores de aproximación. Para el problema no lineal se empleó una solución numérica de referencia calculada con RK4 y un paso refinado. Se compararon resultados, se elaboraron gráficas y se analizaron las razones de convergencia al reducir el tamaño de paso. En los experimentos realizados, RK4 produjo errores menores que Euler. Las razones de error observadas fueron consistentes con los órdenes globales teóricos uno y cuatro, respectivamente. La implementación ilustra el uso de programación científica para estudiar precisión, convergencia y limitaciones de métodos numéricos.
+\newpage
+\section{Introducción}
+Las ecuaciones diferenciales ordinarias (EDO) modelan fenómenos que evolucionan en el tiempo y describen relaciones entre funciones desconocidas y sus derivadas. Son útiles en simulación, circuitos eléctricos, control y modelado de sistemas dinámicos. Aunque algunos problemas admiten soluciones analíticas, otros requieren aproximaciones numéricas. En este trabajo se comparan dos métodos explícitos: Euler, sencillo y de primer orden, y RK4, de mayor precisión por paso a cambio de cuatro evaluaciones de la función. El marco teórico se apoya principalmente en Zill y Cullen \cite{zill2009}, especialmente en su capítulo 9.
+\subsection{Objetivo general}
+Implementar y comparar los métodos de Euler y RK4 en Python mediante problemas con valores iniciales de distinta estructura.
+\subsection{Objetivos específicos}
+\begin{itemize}
+\item Programar ambos métodos para ecuaciones escalares y sistemas de primer orden.
+\item Resolver cuatro problemas representativos y comparar sus resultados.
+\item Calcular errores frente a soluciones analíticas cuando estén disponibles.
+\item Analizar la convergencia mediante refinamiento del paso de integración.
+\item Documentar resultados y limitaciones de las aproximaciones.
+\end{itemize}
+\section{Fundamento teórico}
+\subsection{Problemas con valores iniciales}
+Un problema con valores iniciales de primer orden se expresa como
+\begin{equation}y'=f(t,y),\qquad y(t_0)=y_0.\end{equation}
+Los métodos estudiados producen aproximaciones $y_n\approx y(t_n)$ en una malla $t_n=t_0+nh$. Véanse las secciones 1.2 y 9.1 del texto base \cite{zill2009}.
+\subsection{Método de Euler}
+Euler utiliza la pendiente en el punto actual para avanzar un paso:
+\begin{equation}\boxed{y_{n+1}=y_n+h f(t_n,y_n).}\end{equation}
+Geométricamente, aproxima la curva mediante segmentos tangentes sucesivos. Para funciones suficientemente regulares y bajo hipótesis de estabilidad, el error local de truncamiento por paso es $O(h^2)$ y el error global en un intervalo fijo es $O(h)$. Por tanto, al dividir $h$ entre dos, el error global suele aproximarse a la mitad en el régimen asintótico. Su ventaja es la simplicidad; su limitación es la precisión y la posible restricción de estabilidad para pasos grandes \cite[sec.~9.1]{zill2009}.
+\subsection{Runge--Kutta de cuarto orden}
+RK4 combina cuatro evaluaciones de la función:
+\begin{align}
+k_1&=f(t_n,y_n),\\
+k_2&=f\left(t_n+\frac h2,y_n+\frac h2k_1\right),\\
+k_3&=f\left(t_n+\frac h2,y_n+\frac h2k_2\right),\\
+k_4&=f(t_n+h,y_n+hk_3).
+\end{align}
+La actualización es
+\begin{equation}\boxed{y_{n+1}=y_n+\frac h6(k_1+2k_2+2k_3+k_4).}\end{equation}
+Bajo condiciones apropiadas, el error local de truncamiento por paso es $O(h^5)$ y el global $O(h^4)$. Al reducir $h$ a la mitad, la razón entre errores consecutivos tiende a 16 cuando domina el error de discretización. RK4 requiere cuatro evaluaciones de $f$ por paso y, como método explícito, también presenta restricciones de estabilidad \cite[sec.~9.2]{zill2009}.
+\subsection{Sistemas y ecuaciones de orden superior}
+Una ecuación de orden superior puede reescribirse como sistema de primer orden. Para $\mathbf{u}'=\mathbf{f}(t,\mathbf{u})$, las fórmulas anteriores se aplican vectorialmente: cada $k_i$ es un vector de derivadas \cite[sec.~9.4]{zill2009}.
+\subsection{Medidas de error y convergencia}
+Para una solución escalar conocida, se emplea el error absoluto $E=|y_{\mathrm{exacta}}-y_h|$. Para sistemas se utiliza la norma euclidiana $E=\|\mathbf{u}_{\mathrm{ref}}-\mathbf{u}_h\|_2$. Las razones $R=E(h)/E(h/2)$ permiten estudiar experimentalmente el orden del método. Una referencia numérica refinada no equivale a una solución exacta.
+\section{Diseño e implementación en Python}
+Los algoritmos se programaron sin recurrir a solucionadores automáticos de EDO. Se utilizaron \texttt{NumPy} para vectores y normas, y \texttt{Matplotlib} para visualizar las soluciones. Las funciones reciben la ecuación o sistema, las condiciones iniciales, el tamaño de paso $h$ y el número de iteraciones $n$, y devuelven pares de tiempo y aproximación.
+\begin{table}[H]\centering\caption{Archivos principales del proyecto}\begin{tabular}{p{0.36\textwidth}p{0.52\textwidth}}\toprule
+Archivo & Función\\\midrule
+\texttt{euler.py} & Euler para una EDO escalar.\\
+\texttt{runge\_kutta.py} & RK4 para una EDO escalar.\\
+\texttt{euler\_sistemas.py} & Euler para sistemas vectoriales.\\
+\texttt{runge\_kutta\_sistemas.py} & RK4 para sistemas vectoriales.\\
+\bottomrule\end{tabular}\end{table}
+Los programas incluyen validaciones básicas para pasos positivos, número entero no negativo de iteraciones y compatibilidad dimensional de los vectores. Los archivos de cada problema generan tablas y gráficas, y los archivos de convergencia repiten los experimentos con distintos pasos.
+\section{Problemas y soluciones analíticas}
+\subsection{Problema 1: EDO de primer orden}
+Se considera
+\begin{equation}y'=t+y,\qquad y(0)=1.\end{equation}
+Se reordena como $y'-y=t$. El factor integrante es $\mu(t)=e^{-t}$, por lo que
+\begin{equation}\frac{d}{dt}(e^{-t}y)=te^{-t}.\end{equation}
+Integrando por partes,
+\begin{equation}e^{-t}y=-te^{-t}-e^{-t}+C.\end{equation}
+Así, $y=-t-1+Ce^t$. De $y(0)=1$ se obtiene $C=2$ y, finalmente,
+\begin{equation}\boxed{y(t)=2e^t-t-1.}\end{equation}
+La derivada $y'=2e^t-1$ coincide con $t+y$, y se satisface la condición inicial.
+\subsection{Problema 2: EDO de segundo orden}
+Se considera
+\begin{equation}y''+3y'+2y=0,\qquad y(0)=1,\quad y'(0)=0.\end{equation}
+La ecuación característica es $r^2+3r+2=(r+1)(r+2)=0$, con raíces $-1$ y $-2$. La solución general es
+\begin{equation}y=C_1e^{-t}+C_2e^{-2t}.\end{equation}
+Las condiciones iniciales producen $C_1+C_2=1$ y $-C_1-2C_2=0$. De ahí $C_1=2$, $C_2=-1$ y
+\begin{equation}\boxed{y(t)=2e^{-t}-e^{-2t}.}\end{equation}
+Para la integración numérica se definió $u_1=y$, $u_2=y'$, obteniendo
+\begin{equation}\begin{cases}u_1'=u_2,\\u_2'=-2u_1-3u_2,\end{cases}\qquad \mathbf{u}(0)=(1,0).\end{equation}
+\subsection{Problema 3: sistema lineal $2\times2$}
+El sistema es
+\begin{equation}\begin{cases}x'=3x+2y,\\y'=2x+3y,\end{cases}\qquad x(0)=1,\ y(0)=0.\end{equation}
+Se definen $u=x+y$ y $v=x-y$. Al sumar y restar las ecuaciones se obtiene $u'=5u$ y $v'=v$. Las condiciones iniciales dan $u(0)=v(0)=1$, luego $u=e^{5t}$ y $v=e^t$. Despejando las variables originales:
+\begin{equation}\boxed{x(t)=\frac{e^{5t}+e^t}{2},\qquad y(t)=\frac{e^{5t}-e^t}{2}.}\end{equation}
+Estas funciones satisfacen las dos ecuaciones y las condiciones iniciales.
+\subsection{Problema 4: sistema no lineal de Lotka--Volterra}
+Se estudia el modelo
+\begin{equation}\begin{cases}x'=0.8x-0.4xy,\\y'=0.2xy-0.6y,\end{cases}\qquad x(0)=2,\ y(0)=1.\end{equation}
+El término $xy$ hace que el sistema sea no lineal. Se interpretan $x$ e $y$ como poblaciones de presas y depredadores, respectivamente. En lugar de utilizar una solución explícita general, se evaluó la convergencia con una referencia numérica refinada. El modelo clásico posee una cantidad conservada implícita, lo que no debe confundirse con una fórmula explícita para ambas trayectorias.
+\section{Resultados numéricos y gráficas}
+\subsection{Problema 1}
+Para $t_0=0$, $h=0.1$ y $n=5$ se obtuvieron los resultados siguientes.
+\begin{table}[H]\centering\caption{Comparación para la EDO de primer orden}\small
+\begin{tabular}{rrrr}\toprule $t$ & Euler & RK4 & Exacta\\\midrule
+0.0&1.000000&1.000000&1.000000\\
+0.1&1.100000&1.110342&1.110342\\
+0.2&1.220000&1.242805&1.242806\\
+0.3&1.362000&1.399717&1.399718\\
+0.4&1.528200&1.583648&1.583649\\
+0.5&1.721020&1.797441&1.797443\\\bottomrule\end{tabular}\end{table}
+En $t=0.5$, el error de Euler es aproximadamente $0.076423$, frente a $0.0000012642$ de RK4.
+\figpendiente{primer_orden.png}{Comparación entre Euler, RK4 y la solución exacta para la EDO de primer orden.}
+\subsection{Problema 2}
+Para $h=0.1$ y $t_f=0.5$, Euler produjo $y(0.5)=0.853300$, RK4 produjo $0.845177$ y la solución analítica dio aproximadamente $0.845182$. Los errores absolutos fueron $0.008118$ y $0.000005$, respectivamente.
+\figpendiente{segundo_orden.png}{Comparación de soluciones para la ecuación de segundo orden.}
+\subsection{Problema 3}
+En $t=0.5$ se obtuvieron:
+\begin{table}[H]\centering\caption{Resultados finales del sistema lineal}\begin{tabular}{lrr}\toprule Método & $x(0.5)$ & $y(0.5)$\\\midrule
+Euler & 4.602130 & 2.991620\\
+RK4 & 6.910367 & 5.261646\\
+Exacta & 6.915608 & 5.266886\\\bottomrule\end{tabular}\end{table}
+Las diferencias absolutas de Euler fueron $2.313478$ para $x$ y $2.275266$ para $y$; las de RK4 fueron aproximadamente $0.005241$ y $0.005240$.
+\figpendiente{lineal_x.png}{Sistema lineal: comparación de $x(t)$.}
+\figpendiente{lineal_y.png}{Sistema lineal: comparación de $y(t)$.}
+\subsection{Problema 4}
+Con $h=0.1$, $n=50$ y $t_f=5$ se obtuvieron:
+\begin{table}[H]\centering\caption{Resultados finales del sistema no lineal}\begin{tabular}{lrr}\toprule Método & $x(5)$ & $y(5)$\\\midrule
+Euler & 2.831311 & 4.061080\\
+RK4 & 2.796657 & 3.745925\\
+Referencia RK4 refinada & 2.7966545592 & 3.7459249320\\\bottomrule\end{tabular}\end{table}
+La diferencia entre métodos no constituye por sí misma un error verdadero. Las gráficas permiten observar el desfase de los máximos y las diferencias de amplitud de las aproximaciones.
+\figpendiente{no_lineal_presas.png}{Modelo Lotka--Volterra: evolución de las presas.}
+\figpendiente{no_lineal_depredadores.png}{Modelo Lotka--Volterra: evolución de los depredadores.}
+\section{Análisis de convergencia}
+Para cada problema se compararon los errores en un tiempo final fijo al disminuir $h$. Las razones se calcularon con los errores no redondeados.
+\subsection{Primer orden}
+\begin{table}[H]\centering\caption{Errores de convergencia: primer orden}\small\begin{tabular}{rrr}\toprule $h$ & Error Euler & Error RK4\\\midrule
+0.1000&0.07642254&0.0000012642\\
+0.0500&0.03965329&0.0000000824\\
+0.0250&0.02020966&0.0000000053\\
+0.0125&0.01020361&0.0000000003\\\bottomrule\end{tabular}\end{table}
+Las razones de Euler fueron $1.9273$, $1.9621$ y $1.9806$; las de RK4, $15.3482$, $15.6704$ y $15.8343$.
+\subsection{Segundo orden}
+\begin{table}[H]\centering\caption{Errores de convergencia: segundo orden, componente $y$}\small\begin{tabular}{rrr}\toprule $h$ & Error Euler & Error RK4\\\midrule
+0.1000&0.0081181217&0.0000052475\\
+0.0500&0.0036135601&0.0000003003\\
+0.0250&0.0017075598&0.0000000180\\
+0.0125&0.0008303123&0.0000000011\\\bottomrule\end{tabular}\end{table}
+Las razones fueron $2.2466$, $2.1162$, $2.0565$ (Euler) y $17.4739$, $16.7207$, $16.3564$ (RK4).
+\subsection{Sistema lineal}
+\begin{table}[H]\centering\caption{Errores vectoriales de convergencia: sistema lineal}\small\begin{tabular}{rrr}\toprule $h$ & Error Euler & Error RK4\\\midrule
+0.100000&3.2448444676&0.0074107477\\
+0.050000&2.0289274485&0.0005695372\\
+0.025000&1.1578387744&0.0000394864\\
+0.012500&0.6225723736&0.0000025995\\
+0.006250&0.3234244014&0.0000001668\\
+0.003125&0.1649196440&0.0000000106\\\bottomrule\end{tabular}\end{table}
+Las últimas razones calculadas fueron $1.9611$ (Euler) y $15.7931$ (RK4). La convergencia asintótica se observa con mayor claridad al refinar el paso.
+\subsection{Sistema no lineal}
+La referencia se calculó con RK4 y $h_{\mathrm{ref}}=0.0001$.
+\begin{table}[H]\centering\caption{Errores estimados respecto a la referencia: sistema no lineal}\small\begin{tabular}{rrr}\toprule $h$ & Error Euler & Error RK4\\\midrule
+0.1000&0.3170547322&0.0000019722\\
+0.0500&0.1512939585&0.0000001246\\
+0.0250&0.0739016877&0.0000000078\\
+0.0125&0.0365228183&0.0000000005\\\bottomrule\end{tabular}\end{table}
+Las razones fueron $2.0956$, $2.0472$, $2.0234$ (Euler) y $15.8263$, $15.9126$, $15.9567$ (RK4).
+\subsection{Validación de la referencia}
+Al comparar RK4 con $h=0.0001$ y $h=0.00005$, se obtuvo el mismo resultado a doce decimales: $x(5)=2.796654559228$ e $y(5)=3.745924932031$. La norma de la diferencia fue $1.616509124176\times10^{-14}$. Esta coincidencia respalda la consistencia de la referencia para las comparaciones efectuadas, pero no certifica un error verdadero de ese orden: el redondeo en punto flotante puede dominar cuando el paso es extremadamente pequeño.
+\section{Discusión}
+Los cuatro experimentos evidencian que RK4 alcanzó errores menores que Euler con el mismo tamaño de paso. Las razones experimentales se aproximaron a 2 para Euler y a 16 para RK4, coherentemente con sus órdenes globales uno y cuatro. En el sistema lineal, la componente $e^{5t}$ amplifica las diferencias y hace más visible la necesidad de refinar el paso. En el sistema no lineal, la referencia refinada permitió estimar errores sin asumir una solución analítica explícita. Los resultados se limitan a los problemas e intervalos estudiados; no garantizan que RK4 sea siempre estable o más eficiente en cualquier situación.
+\section{Conclusiones}
+\begin{enumerate}
+\item Se implementaron satisfactoriamente Euler y RK4 para EDO escalares y sistemas de primer orden, reutilizando los algoritmos vectoriales para problemas de segundo orden.
+\item En los cuatro problemas ensayados, RK4 produjo aproximaciones más cercanas a las soluciones exactas o a la referencia refinada que Euler con igual paso.
+\item Las razones de convergencia observadas fueron consistentes con los órdenes globales esperados de Euler y RK4.
+\item La validación de la referencia no lineal mostró una diferencia extremadamente pequeña entre dos refinamientos, sin que ello implique conocer exactamente el error verdadero.
+\item La selección de un método debe considerar simultáneamente precisión, costo por paso y estabilidad numérica.
+\end{enumerate}
+\clearpage
+\phantomsection
+\addcontentsline{toc}{section}{Referencias}
+\begin{thebibliography}{9}
+\bibitem{zill2009} D. G. Zill y M. R. Cullen, \textit{Ecuaciones diferenciales con problemas con valores en la frontera}, 7.\textsuperscript{a} ed. México: Cengage Learning, 2009. Véanse especialmente las secciones 2.3, 4.3, 8.2 y 9.1--9.4.
+\end{thebibliography}
+\end{document}

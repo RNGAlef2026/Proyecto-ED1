@@ -75,6 +75,15 @@ plt.title("Comparacion de metodos numericos")
 plt.xlabel("Tiempo (t)")
 plt.ylabel("Solucion y(t)")
 
+
 plt.legend()
 plt.grid(True)
+
+# Guardar la grafica para el informe
+plt.savefig(
+    "informe/figuras/primer_orden.png",
+    dpi=300,
+    bbox_inches="tight"
+)
+
 plt.show()

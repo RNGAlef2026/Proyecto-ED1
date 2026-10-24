@@ -78,6 +78,11 @@ plt.ylabel("Poblacion x(t)")
 plt.legend()
 plt.grid(True)
 
+plt.savefig(
+    "no_lineal_presas.png",
+    dpi=300,
+    bbox_inches="tight"
+)
 
 # Grafica de los depredadores
 plt.figure()
@@ -93,5 +98,11 @@ plt.xlabel("Tiempo (t)")
 plt.ylabel("Poblacion y(t)")
 plt.legend()
 plt.grid(True)
+
+plt.savefig(
+    "no_lineal_depredadores.png",
+    dpi=300,
+    bbox_inches="tight"
+)
 
 plt.show()

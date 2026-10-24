@@ -131,6 +131,12 @@ plt.ylabel("x(t)")
 plt.legend()
 plt.grid(True)
 
+plt.savefig(
+    "lineal_x.png",
+    dpi=300,
+    bbox_inches="tight"
+)
+
 
 # Grafica de y(t)
 plt.figure()
@@ -144,5 +150,11 @@ plt.xlabel("Tiempo (t)")
 plt.ylabel("y(t)")
 plt.legend()
 plt.grid(True)
+
+plt.savefig(
+    "lineal_y.png",
+    dpi=300,
+    bbox_inches="tight"
+)
 
 plt.show()
